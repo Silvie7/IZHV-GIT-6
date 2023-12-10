@@ -134,7 +134,7 @@ public class InventoryManager : MonoBehaviour
         mItemDetailName = itemDetails.Q<Label>("ItemDetailName");
         mItemDetailDescription = itemDetails.Q<Label>("ItemDetailDescription");
         mItemDetailCost = itemDetails.Q<Label>("ItemDetailCost");
-        
+
         /*
          * Task 2c: Link the Button
          *
@@ -153,10 +153,11 @@ public class InventoryManager : MonoBehaviour
          * this is that whenever we press the button, CreateItem() will
          * be called.
          */
-        
-        
-        
-        
+
+        mItemCreateButton = itemDetails.Q<Button>("ItemDetailButtonCreate");
+        mItemCreateButton.clicked += () => CreateItem();
+
+
         await UniTask.WaitForEndOfFrame();
 
         var gridSlots = mInventoryGrid.Children();
@@ -332,7 +333,7 @@ public class InventoryManager : MonoBehaviour
     /// <summary> Move the highlight to be on top of all other elements. </summary>
     public void MoveHighlightToTop()
     { mGridHighlight.BringToFront(); }
-    
+
     /// <summary> Update the currently displayed item description from given item. </summary>
     public void UpdateSelectedItem([CanBeNull] ItemVisual item = null)
     {
@@ -353,17 +354,34 @@ public class InventoryManager : MonoBehaviour
          * Finally, you should also DISABLE the button when we have no item available
          * and provide some default texts to let the player know what to expect.
          */
-        
+
         if (item == null)
         { // We have no item selected -> Provide some default information.
+            mItemDetailName.text = "";
+            mItemDetailDescription.text = "";
+            mItemDetailCost.text = "";
+            mItemCreateButton.SetEnabled(false);
         }
         else
-        { // We have item selected -> Use the item information.
-        }
-        
-        selectedItem = item;
-    }
+        {
+            if (item.definition.cost < availableCurrency)
+            { // We have item selected -> Use the item information.
+                mItemDetailName.text = item.definition.readableName;
+                mItemDetailDescription.text = item.definition.readableDescription;
+                mItemDetailCost.text = item.definition.cost.ToString();
+                mItemCreateButton.SetEnabled(true);
+            }
 
+            if (item.definition.cost > availableCurrency)
+            {
+                mItemDetailName.text = item.definition.readableName;
+                mItemDetailDescription.text = "Not Enough Currency!";
+                mItemDetailCost.text = item.definition.cost.ToString();
+                mItemCreateButton.SetEnabled(false);
+            }
+                selectedItem = item;
+        }
+    }
     /// <summary> Set the current amount of currency available. </summary>
     public void SetAvailableCurrency(int currency)
     {
@@ -391,9 +409,16 @@ public class InventoryManager : MonoBehaviour
          * it from the cost (itemDefinition.cost) from availableCurrency property.
          * These items are not cheap to make!
          */
-        
+
         var itemDefinition = selectedItem?.definition;
-        
+
+        if (selectedItem != null)
+        {
+            Instantiate(itemDefinition.prefab, createDestination.transform);
+            availableCurrency -= itemDefinition.cost;
+            return true;
+        }
+
         return false;
     }
 }
